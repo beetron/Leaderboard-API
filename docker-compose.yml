@@ -1,0 +1,27 @@
+services:
+  leaderboard-api:
+    image: leaderboard-api:latest
+    container_name: leaderboard-api
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8090
+      - MONGODB_CONNECTION_STRING=${MONGODB_CONNECTION_STRING:-mongodb://temporary}
+      - MONGODB_DATABASE_NAME=${MONGODB_DATABASE_NAME:-leaderboard}
+      - MONGODB_COLLECTION_NAME=${MONGODB_COLLECTION_NAME:-records}
+    volumes:
+      - ./Leaderboard-API/.env:/app/.env:ro
+    networks:
+      - leaderboard-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8090/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  leaderboard-network:
+    driver: bridge
