@@ -92,5 +92,72 @@ namespace Leaderboard_API.Services
                 return false;
             }
         }
+
+        public async Task<int> GetPlayerRankAsync(int playerScore)
+        {
+            try
+            {
+                _logger.LogInformation("Calculating rank for score: {PlayerScore}", playerScore);
+
+                // Count how many players have a higher score than the current player
+                var filter = Builders<Record>.Filter.Gt(r => r.PlayerScore, playerScore);
+                var playersWithHigherScores = await _recordsCollection.CountDocumentsAsync(filter);
+
+                // Rank is the number of players with higher scores + 1
+                var rank = (int)playersWithHigherScores + 1;
+
+                _logger.LogInformation("Player with score {PlayerScore} is ranked {Rank}", playerScore, rank);
+                return rank;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to calculate rank for score: {PlayerScore}. Error: {ErrorMessage}",
+                    playerScore, ex.Message);
+                return -1; // Return -1 to indicate error
+            }
+        }
+
+        public async Task<int> GetTotalPlayersCountAsync()
+        {
+            try
+            {
+                var totalPlayers = await _recordsCollection.CountDocumentsAsync(FilterDefinition<Record>.Empty);
+                _logger.LogInformation("Total players in leaderboard: {TotalPlayers}", totalPlayers);
+                return (int)totalPlayers;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get total players count. Error: {ErrorMessage}", ex.Message);
+                return -1; // Return -1 to indicate error
+            }
+        }
+
+        public async Task<List<Record>> GetTopScoresAsync(int count)
+        {
+            try
+            {
+                _logger.LogInformation("Retrieving top {Count} scores", count);
+
+                // Create a sort definition to order by PlayerScore in descending order (highest first)
+                var sort = Builders<Record>.Sort.Descending(r => r.PlayerScore).Ascending(r => r.CreatedAt);
+
+                // Get the top scores
+                var topScores = await _recordsCollection
+                    .Find(FilterDefinition<Record>.Empty)
+                    .Sort(sort)
+                    .Limit(count)
+                    .ToListAsync();
+
+                _logger.LogInformation("Successfully retrieved {ActualCount} out of requested {RequestedCount} top scores",
+                    topScores.Count, count);
+
+                return topScores;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get top {Count} scores. Error: {ErrorMessage}", count, ex.Message);
+                return new List<Record>();
+            }
+        }
     }
 }
