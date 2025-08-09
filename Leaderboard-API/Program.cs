@@ -27,7 +27,12 @@ builder.Services.AddSingleton<IMongoDbService, MongoDbService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseHttpsRedirection();
+
+// Only use HTTPS redirection in Development (nginx handles SSL termination)
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Enable CORS
 app.UseCors("AllowItchIo");

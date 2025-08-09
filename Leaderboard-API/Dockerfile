@@ -2,6 +2,8 @@
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+USER root
+RUN apt-get update && apt-get install -y curl && apt-get clean
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8090
