@@ -59,8 +59,8 @@ namespace Leaderboard_API.Controllers
                 {
                     _logger.LogInformation("Score submitted successfully for player: {PlayerName}", request.PlayerName);
 
-                    // Calculate the player's rank
-                    var rank = await _mongoDbService.GetPlayerRankAsync(request.PlayerScore);
+                    // Calculate the player's rank using both score and createdAt
+                    var rank = await _mongoDbService.GetPlayerRankAsync(request.PlayerScore, record.CreatedAt);
                     var totalPlayers = await _mongoDbService.GetTotalPlayersCountAsync();
 
                     if (rank > 0 && totalPlayers > 0)
@@ -127,7 +127,7 @@ namespace Leaderboard_API.Controllers
 
                 _logger.LogInformation("Fetching top {Count} scores from MongoDB", count);
 
-                // Get the top scores from MongoDB
+                // Get the top scores from MongoDB (already sorted correctly by score desc, createdAt asc)
                 var topScores = await _mongoDbService.GetTopScoresAsync(count);
                 var totalPlayers = await _mongoDbService.GetTotalPlayersCountAsync();
 
@@ -137,7 +137,7 @@ namespace Leaderboard_API.Controllers
                     return StatusCode(500, "Failed to retrieve rankings");
                 }
 
-                // Convert to leaderboard entries with ranks
+                // Convert to leaderboard entries with ranks (ranks are sequential since data is already sorted correctly)
                 var rankings = topScores.Select((record, index) => new LeaderboardEntry
                 {
                     Rank = index + 1,

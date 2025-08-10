@@ -93,20 +93,31 @@ namespace Leaderboard_API.Services
             }
         }
 
-        public async Task<int> GetPlayerRankAsync(int playerScore)
+        public async Task<int> GetPlayerRankAsync(int playerScore, DateTime createdAt)
         {
             try
             {
-                _logger.LogInformation("Calculating rank for score: {PlayerScore}", playerScore);
+                _logger.LogInformation("Calculating rank for score: {PlayerScore} created at: {CreatedAt}",
+                    playerScore, createdAt);
 
-                // Count how many players have a higher score than the current player
-                var filter = Builders<Record>.Filter.Gt(r => r.PlayerScore, playerScore);
-                var playersWithHigherScores = await _recordsCollection.CountDocumentsAsync(filter);
+                // Count players with higher scores
+                var higherScoreFilter = Builders<Record>.Filter.Gt(r => r.PlayerScore, playerScore);
+                var playersWithHigherScores = await _recordsCollection.CountDocumentsAsync(higherScoreFilter);
 
-                // Rank is the number of players with higher scores + 1
-                var rank = (int)playersWithHigherScores + 1;
+                // Count players with same score but earlier CreatedAt (they rank higher)
+                var sameScoreEarlierFilter = Builders<Record>.Filter.And(
+                    Builders<Record>.Filter.Eq(r => r.PlayerScore, playerScore),
+                    Builders<Record>.Filter.Lt(r => r.CreatedAt, createdAt)
+                );
+                var playersWithSameScoreButEarlier = await _recordsCollection.CountDocumentsAsync(sameScoreEarlierFilter);
 
-                _logger.LogInformation("Player with score {PlayerScore} is ranked {Rank}", playerScore, rank);
+                // Rank = players with higher scores + players with same score but earlier time + 1
+                var rank = (int)(playersWithHigherScores + playersWithSameScoreButEarlier) + 1;
+
+                _logger.LogInformation("Player with score {PlayerScore} (created {CreatedAt}) is ranked {Rank}. " +
+                    "Higher scores: {HigherScores}, Same score but earlier: {SameScoreEarlier}",
+                    playerScore, createdAt, rank, playersWithHigherScores, playersWithSameScoreButEarlier);
+
                 return rank;
             }
             catch (Exception ex)
@@ -138,7 +149,7 @@ namespace Leaderboard_API.Services
             {
                 _logger.LogInformation("Retrieving top {Count} scores", count);
 
-                // Create a sort definition to order by PlayerScore in descending order (highest first)
+                // Sort by PlayerScore descending (highest first), then by CreatedAt ascending (earliest first for ties)
                 var sort = Builders<Record>.Sort.Descending(r => r.PlayerScore).Ascending(r => r.CreatedAt);
 
                 // Get the top scores
