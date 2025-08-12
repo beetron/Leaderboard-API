@@ -9,15 +9,19 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
-// Add CORS for itch.io and subdomains only
+// Add CORS for itch.zone and subdomains
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowItchIo", policy =>
+    options.AddPolicy("AllowItchZone", policy =>
     {
-        policy.WithOrigins("https://itch.io", "https://*.itch.io")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        policy.SetIsOriginAllowed(origin =>
+        {
+            var uri = new Uri(origin);
+            return uri.Host == "itch.zone" || uri.Host.EndsWith(".itch.zone");
+        })
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });
 
@@ -35,7 +39,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // Enable CORS
-app.UseCors("AllowItchIo");
+app.UseCors("AllowItchZone");
 
 app.UseAuthorization();
 
