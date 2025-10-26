@@ -1,5 +1,6 @@
 using Leaderboard_API.Models;
 using MongoDB.Driver;
+using Microsoft.Extensions.Configuration;
 
 namespace Leaderboard_API.Services
 {
@@ -12,18 +13,18 @@ namespace Leaderboard_API.Services
         {
             _logger = logger;
 
-            // Read connection string from Docker secret file
-            var connectionString = ReadDockerSecret("mongo_connection_string");
+            // DotNetEnv via IConfiguration which handles loading from .env
+            var connectionString = configuration["MONGO_CONNECTION_STRING"];
 
-            if (string.IsNullOrEmpty(connectionString))
+            if (string.IsNullOrWhiteSpace(connectionString))
             {
-                _logger.LogError("MongoDB connection string not found in Docker secrets");
-                throw new InvalidOperationException("MongoDB connection string not found in Docker secrets");
+                _logger.LogError("MongoDB connection string not found in configuration or environment variables");
+                throw new InvalidOperationException("MongoDB connection string not found");
             }
 
-            // Database and collection names are safe to expose as environment variables
-            var databaseName = Environment.GetEnvironmentVariable("MONGODB_DATABASE_NAME") ?? "leaderboard";
-            var collectionName = Environment.GetEnvironmentVariable("MONGODB_COLLECTION_NAME") ?? "records";
+            // Fetch non-sensitive env from appsettings.json
+            string? databaseName = configuration["MongoDb:DatabaseName"];
+            string? collectionName = configuration["MongoDb:CollectionName"];
 
             _logger.LogInformation("Connecting to MongoDB database: {DatabaseName}, collection: {CollectionName}",
                 databaseName, collectionName);
@@ -42,39 +43,7 @@ namespace Leaderboard_API.Services
                 throw;
             }
         }
-
-        private string ReadDockerSecret(string secretName)
-        {
-            try
-            {
-                var secretPath = $"/run/secrets/{secretName}";
-
-                if (File.Exists(secretPath))
-                {
-                    var secretValue = File.ReadAllText(secretPath).Trim();
-                    _logger.LogInformation("Successfully read Docker secret: {SecretName}", secretName);
-                    return secretValue;
-                }
-                else
-                {
-                    _logger.LogWarning("Docker secret file not found: {SecretPath}", secretPath);
-
-                    // Fallback to environment variable for development/testing
-                    var envValue = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING");
-                    if (!string.IsNullOrEmpty(envValue))
-                    {
-                        _logger.LogInformation("Using environment variable as fallback for connection string");
-                        return envValue;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error reading Docker secret: {SecretName}", secretName);
-            }
-
-            return string.Empty;
-        }
+             
 
         public async Task<bool> AddRecordAsync(Record record)
         {
@@ -111,8 +80,8 @@ namespace Leaderboard_API.Services
                 );
                 var playersWithSameScoreButEarlier = await _recordsCollection.CountDocumentsAsync(sameScoreEarlierFilter);
 
-                // Rank = players with higher scores + players with same score but earlier time + 1
-                var rank = (int)(playersWithHigherScores + playersWithSameScoreButEarlier) + 1;
+                // Rank = players with higher scores + players with same score but earlier time +1
+                var rank = (int)(playersWithHigherScores + playersWithSameScoreButEarlier) +1;
 
                 _logger.LogInformation("Player with score {PlayerScore} (created {CreatedAt}) is ranked {Rank}. " +
                     "Higher scores: {HigherScores}, Same score but earlier: {SameScoreEarlier}",
