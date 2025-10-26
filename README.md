@@ -2,6 +2,8 @@
 
 A robust RESTful API for managing game leaderboards, built with .NET 9 and MongoDB. This service handles score submissions, rankings retrieval, and leaderboard management with health monitoring capabilities.
 
+**Created for**: [Mini Miner](https://lazy-onigiri.itch.io/mini-miner) - A browser-based mining game on itch.io
+
 ## Project Overview
 
 **Leaderboard-API** is a containerized web service designed to manage game leaderboards efficiently. It provides endpoints for:
@@ -301,6 +303,16 @@ policy.SetIsOriginAllowed(origin =>
 ## License
 
 Please refer to the LICENSE file in the repository for licensing information.
+
+## Support & Contributions
+
+For issues, bug reports, or feature requests, please open an issue on the [GitHub repository](https://github.com/beetron/Leaderboard-API).
+
+Contributions are welcome! Please fork the repository and submit a pull request.
+
+## About
+
+This leaderboard system was built to power the global rankings for [Mini Miner](https://lazy-onigiri.itch.io/mini-miner), a browser-based mining game. It demonstrates a production-ready backend solution for managing competitive gameplay data with real-time leaderboard features.
 
 ## Related Resources
 
